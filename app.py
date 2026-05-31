@@ -280,9 +280,9 @@ def load_with_progress(pdf_path: str):
     data_cached = st.session_state.get(f"data_loaded_{pdf_path}", False)
     img_cached  = cache_file.exists()
 
-    # If both already cached just return silently
-    if data_cached and img_cached:
-        return load_data(pdf_path), load_images(pdf_path)
+    # If data already cached just return silently
+    if data_cached:
+        return load_data(pdf_path), load_images(pdf_path) if img_cached else {}
 
     # ── loading screen ────────────────────────────────────────────────────────
     placeholder = st.empty()
@@ -303,10 +303,10 @@ def load_with_progress(pdf_path: str):
             unsafe_allow_html=True,
         )
 
-        # ── Step 1: Parse PDF ─────────────────────────────────────────────────
+        # ── Step 1: Parse PDF only ────────────────────────────────────────────
         st.markdown(
             "<div style='text-align:center;font-size:13px;color:#f0a500;font-weight:600;"
-            "margin-bottom:8px'>📋 Step 1/2 — Membaca & parsing data properti...</div>",
+            "margin-bottom:8px'>📋 Membaca & parsing data properti...</div>",
             unsafe_allow_html=True,
         )
         bar1 = st.progress(0, text="Membuka PDF...")
@@ -325,42 +325,8 @@ def load_with_progress(pdf_path: str):
         bar1.progress(100, text=f"✅ {len(df_result)} properti ditemukan!")
         time.sleep(0.5)
 
-        # ── Step 2: Render images ─────────────────────────────────────────────
-        st.markdown(
-            "<div style='text-align:center;font-size:13px;color:#f0a500;font-weight:600;"
-            "margin-bottom:8px;margin-top:16px'>🖼️ Step 2/2 — Merender preview gambar halaman PDF...</div>",
-            unsafe_allow_html=True,
-        )
-        bar2 = st.progress(0, text="Memulai render...")
-
-        # Animate while rendering (rendering happens inside load_images)
-        import threading
-        result_holder = {}
-
-        def _render():
-            result_holder["images"] = load_images(pdf_path)
-
-        t = threading.Thread(target=_render)
-        t.start()
-
-        tick = 0
-        while t.is_alive():
-            tick += 1
-            pct = min(95, tick * 2)
-            bar2.progress(
-                pct,
-                text=f"Rendering halaman... {pct}% — harap tunggu ⏳",
-            )
-            time.sleep(0.4)
-
-        t.join()
-        bar2.progress(100, text="✅ Semua gambar siap!")
-        time.sleep(0.6)
-
-        images_result = result_holder.get("images", {})
-
     placeholder.empty()
-    return df_result, images_result
+    return df_result, {}
 
 
 # ── sidebar ───────────────────────────────────────────────────────────────────
@@ -426,7 +392,7 @@ with st.sidebar:
         ["Harga Terendah", "Harga Tertinggi", "Luas Terbesar", "Wilayah A–Z"],
     )
     cards_per_row = st.selectbox("Kartu per baris", [2, 3, 4], index=1)
-    show_images = st.checkbox("Tampilkan preview halaman PDF", value=True)
+    show_images = st.checkbox("Tampilkan preview halaman PDF", value=False)
 
 # ── apply filters ─────────────────────────────────────────────────────────────
 df = df_all.copy()

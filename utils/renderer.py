@@ -29,7 +29,8 @@ def render_pages(pdf_path: str, dpi: int = 72) -> dict[int, Image.Image]:
         from pdf2image import convert_from_path
         images_list = convert_from_path(pdf_path, dpi=dpi)
         images = {i + 1: img for i, img in enumerate(images_list)}
-    except Exception:
+    except Exception as e:
+        print(f"[renderer] pdf2image failed: {e}")
         images = {}
 
     with open(cache_file, "wb") as f:
